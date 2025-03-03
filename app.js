@@ -128,83 +128,106 @@ function updatePositions() {
             // Initialize movement properties if they don't exist
             if (!point.movement) {
                 point.movement = {
-                    // Random 3D direction vector
-                    dirX: Math.random() * 2 - 1,
-                    dirY: Math.random() * 2 - 1,
-                    dirZ: Math.random() * 2 - 1,
-                    // Random speed
-                    speed: 0.5 + Math.random() * 1.5,
-                    // Time until next direction change
-                    nextChange: Date.now() + 2000 + Math.random() * 5000
+                    // Random 3D direction with varying magnitudes
+                    dirX: (Math.random() * 2 - 1) * (0.5 + Math.random() * 1.5),
+                    dirY: (Math.random() * 2 - 1) * (0.5 + Math.random() * 1.5),
+                    dirZ: (Math.random() * 2 - 1) * (0.5 + Math.random() * 1.5),
+                    
+                    // Highly variable speeds for each axis
+                    speedX: 0.1 + Math.random() * 2.0,
+                    speedY: 0.1 + Math.random() * 2.0,
+                    speedZ: 0.1 + Math.random() * 2.0,
+                    
+                    // Different oscillation frequencies
+                    freqX: 0.5 + Math.random() * 2,
+                    freqY: 0.5 + Math.random() * 2,
+                    freqZ: 0.5 + Math.random() * 2,
+                    
+                    // Random phase offsets
+                    phaseX: Math.random() * Math.PI * 2,
+                    phaseY: Math.random() * Math.PI * 2,
+                    phaseZ: Math.random() * Math.PI * 2,
+                    
+                    // Variable timing for direction changes
+                    nextChange: Date.now() + (1000 + Math.random() * 4000),
+                    
+                    // Random movement patterns
+                    pattern: Math.floor(Math.random() * 4), // 0: linear, 1: circular, 2: spiral, 3: chaotic
+                    
+                    // Movement range
+                    range: 50 + Math.random() * 200
                 };
-                // Normalize direction vector
-                const length = Math.sqrt(
-                    point.movement.dirX * point.movement.dirX + 
-                    point.movement.dirY * point.movement.dirY + 
-                    point.movement.dirZ * point.movement.dirZ
-                );
-                point.movement.dirX /= length;
-                point.movement.dirY /= length;
-                point.movement.dirZ /= length;
             }
 
-            // Check if it's time to change direction
-            if (Date.now() > point.movement.nextChange) {
-                // Gradually transition to new direction
-                const newDirX = Math.random() * 2 - 1;
-                const newDirY = Math.random() * 2 - 1;
-                const newDirZ = Math.random() * 2 - 1;
-                
-                // Normalize new direction
-                const length = Math.sqrt(newDirX * newDirX + newDirY * newDirY + newDirZ * newDirZ);
-                
-                // Smooth transition to new direction
-                point.movement.dirX = 0.95 * point.movement.dirX + 0.05 * (newDirX / length);
-                point.movement.dirY = 0.95 * point.movement.dirY + 0.05 * (newDirY / length);
-                point.movement.dirZ = 0.95 * point.movement.dirZ + 0.05 * (newDirZ / length);
-                
-                // Random new speed
-                point.movement.speed = 0.5 + Math.random() * 1.5;
-                
-                // Set next change time
-                point.movement.nextChange = Date.now() + 2000 + Math.random() * 5000;
+            const time = Date.now() * 0.001;
+            const movement = point.movement;
+
+            // Apply different movement patterns
+            switch(movement.pattern) {
+                case 0: // Linear with slight wobble
+                    point.x += Math.sin(time * movement.freqX + movement.phaseX) * movement.dirX * movement.speedX;
+                    point.y += Math.sin(time * movement.freqY + movement.phaseY) * movement.dirY * movement.speedY;
+                    point.z += Math.sin(time * movement.freqZ + movement.phaseZ) * movement.dirZ * movement.speedZ;
+                    break;
+                    
+                case 1: // Circular
+                    point.x += Math.cos(time * movement.freqX) * movement.dirX * movement.speedX;
+                    point.y += Math.sin(time * movement.freqY) * movement.dirY * movement.speedY;
+                    point.z += Math.sin(time * movement.freqZ) * movement.dirZ * movement.speedZ * 0.5;
+                    break;
+                    
+                case 2: // Spiral
+                    point.x += (Math.cos(time * movement.freqX) * movement.dirX * movement.speedX);
+                    point.y += (Math.sin(time * movement.freqY) * movement.dirY * movement.speedY);
+                    point.z += Math.sin(time * 0.5) * movement.dirZ * movement.speedZ;
+                    break;
+                    
+                case 3: // Chaotic
+                    point.x += Math.sin(time * movement.freqX * Math.sin(time * 0.1)) * movement.dirX * movement.speedX;
+                    point.y += Math.sin(time * movement.freqY * Math.cos(time * 0.1)) * movement.dirY * movement.speedY;
+                    point.z += Math.sin(time * movement.freqZ * Math.sin(time * 0.2)) * movement.dirZ * movement.speedZ;
+                    break;
             }
 
-            // Apply movement
-            point.x += point.movement.dirX * point.movement.speed;
-            point.y += point.movement.dirY * point.movement.speed;
-            point.z += point.movement.dirZ * point.movement.speed;
+            // Random direction changes
+            if (Date.now() > movement.nextChange) {
+                // New random directions with varying magnitudes
+                movement.dirX = (Math.random() * 2 - 1) * (0.5 + Math.random() * 1.5);
+                movement.dirY = (Math.random() * 2 - 1) * (0.5 + Math.random() * 1.5);
+                movement.dirZ = (Math.random() * 2 - 1) * (0.5 + Math.random() * 1.5);
+                
+                // New random speeds
+                movement.speedX *= 0.5 + Math.random();
+                movement.speedY *= 0.5 + Math.random();
+                movement.speedZ *= 0.5 + Math.random();
+                
+                // New frequencies
+                movement.freqX = 0.5 + Math.random() * 2;
+                movement.freqY = 0.5 + Math.random() * 2;
+                movement.freqZ = 0.5 + Math.random() * 2;
+                
+                // Maybe change pattern
+                if (Math.random() < 0.3) {
+                    movement.pattern = Math.floor(Math.random() * 4);
+                }
+                
+                // Next change time
+                movement.nextChange = Date.now() + (1000 + Math.random() * 4000);
+            }
 
-            // Smooth boundary handling with direction reversal
+            // Boundary checks with smooth bounce
             if (Math.abs(point.x) > 400) {
                 point.x = Math.sign(point.x) * 400;
-                point.movement.dirX *= -1;
-                // Add slight random variation when bouncing
-                point.movement.dirY += (Math.random() - 0.5) * 0.5;
-                point.movement.dirZ += (Math.random() - 0.5) * 0.5;
+                movement.dirX *= -0.8 - Math.random() * 0.4;
             }
             if (Math.abs(point.y) > 400) {
                 point.y = Math.sign(point.y) * 400;
-                point.movement.dirY *= -1;
-                point.movement.dirX += (Math.random() - 0.5) * 0.5;
-                point.movement.dirZ += (Math.random() - 0.5) * 0.5;
+                movement.dirY *= -0.8 - Math.random() * 0.4;
             }
             if (point.z < 0 || point.z > 400) {
                 point.z = point.z < 0 ? 0 : 400;
-                point.movement.dirZ *= -1;
-                point.movement.dirX += (Math.random() - 0.5) * 0.5;
-                point.movement.dirY += (Math.random() - 0.5) * 0.5;
+                movement.dirZ *= -0.8 - Math.random() * 0.4;
             }
-
-            // Re-normalize direction vector after changes
-            const length = Math.sqrt(
-                point.movement.dirX * point.movement.dirX + 
-                point.movement.dirY * point.movement.dirY + 
-                point.movement.dirZ * point.movement.dirZ
-            );
-            point.movement.dirX /= length;
-            point.movement.dirY /= length;
-            point.movement.dirZ /= length;
         }
     });
 }
