@@ -384,10 +384,26 @@ function randomizeLineEffect() {
     lineEffect.speedMultiplier = Math.random() * 2 + 0.5;
 }
 
-// Define a consistent viewport padding
-const VIEWPORT_PADDING = 30;  // We can easily adjust this single value
+// Define viewport padding at the top of the file
+const VIEWPORT_PADDING = 30;
 
-// Update button styling with consistent padding
+// Add title after canvas setup
+const title = document.createElement('h1');
+title.textContent = 'Floating Dots';
+Object.assign(title.style, {
+    position: 'fixed',
+    left: `${VIEWPORT_PADDING}px`,
+    top: `${VIEWPORT_PADDING}px`,
+    color: 'white',
+    fontFamily: 'monospace',
+    fontSize: '20px',
+    margin: '0',
+    padding: '0',
+    zIndex: '1000'
+});
+document.body.appendChild(title);
+
+// Button styling (keep your existing style)
 const buttonStyle = {
     position: 'fixed',
     padding: '12px 20px',
@@ -400,29 +416,30 @@ const buttonStyle = {
     transition: 'all 0.3s ease'
 };
 
-// Create and add buttons
+// Create and position randomize button
 const randomizeButton = document.createElement('button');
 randomizeButton.textContent = 'Lines: random';
 Object.assign(randomizeButton.style, buttonStyle, {
     left: `${VIEWPORT_PADDING}px`,
-    top: `${VIEWPORT_PADDING}px`
+    top: `${VIEWPORT_PADDING + 50}px`  // Position below title
 });
 randomizeButton.addEventListener('mouseover', () => randomizeButton.style.background = '#333');
 randomizeButton.addEventListener('mouseout', () => randomizeButton.style.background = 'black');
 randomizeButton.addEventListener('click', randomizeLineEffect);
 document.body.appendChild(randomizeButton);
 
+// Create and position restart button
 const restartButton = document.createElement('button');
 restartButton.textContent = 'New Sculpture';
 Object.assign(restartButton.style, buttonStyle, {
     left: `${VIEWPORT_PADDING}px`,
-    top: `${VIEWPORT_PADDING + 120}px`  // 60px gap between buttons
+    top: `${VIEWPORT_PADDING + 110}px`  // Position below randomize button
 });
 restartButton.addEventListener('mouseover', () => restartButton.style.background = '#333');
 restartButton.addEventListener('mouseout', () => restartButton.style.background = 'black');
 restartButton.addEventListener('click', () => {
-    const minDots = 3;    // Changed from 4 to 3
-    const maxDots = 55;   // Changed from 12 to 55
+    const minDots = 3;
+    const maxDots = 55;
     numPoints = Math.floor(Math.random() * (maxDots - minDots + 1)) + minDots;
     startPoint = {
         x: Math.random() * 800 - 400,
@@ -434,12 +451,12 @@ restartButton.addEventListener('click', () => {
 });
 document.body.appendChild(restartButton);
 
-// Update sound button
+// Create and position sound button
 const soundButton = document.createElement('button');
 soundButton.textContent = 'Sound: OFF';
 Object.assign(soundButton.style, buttonStyle, {
     left: `${VIEWPORT_PADDING}px`,
-    top: `${VIEWPORT_PADDING + 60}px`  // 60px gap between buttons
+    top: `${VIEWPORT_PADDING + 170}px`  // Position below restart button
 });
 soundButton.addEventListener('mouseover', () => soundButton.style.background = '#333');
 soundButton.addEventListener('mouseout', () => soundButton.style.background = 'black');
@@ -448,7 +465,7 @@ soundButton.addEventListener('click', async () => {
         if (!audioCtx) {
             // Create audio context on first click
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            await audioCtx.resume(); // Ensure audio context is running
+            await audioCtx.resume();
             initAudio();
             soundEnabled = true;
             soundButton.textContent = 'Sound: ON';
@@ -460,7 +477,7 @@ soundButton.addEventListener('click', async () => {
                 soundButton.textContent = 'Sound: OFF';
                 console.log('Sound disabled');
             } else {
-                await audioCtx.resume(); // Resume audio context
+                await audioCtx.resume();
                 soundEnabled = true;
                 soundButton.textContent = 'Sound: ON';
                 console.log('Sound enabled');
@@ -518,18 +535,57 @@ function handleResize() {
     };
     
     updateUIPositions();
+    
+    if (window.innerWidth < 480) { // Mobile
+        title.style.fontSize = '16px';
+    } else if (window.innerWidth < 768) { // Tablet
+        title.style.fontSize = '18px';
+    } else { // Desktop
+        title.style.fontSize = '20px';
+    }
 }
 
 // Function to update UI element positions
 function updateUIPositions() {
-    // Create container for controls if it doesn't exist
     let container = document.querySelector('.controls-container');
     if (!container) {
         container = document.createElement('div');
         container.className = 'controls-container';
         document.body.appendChild(container);
     }
-    
+
+    if (window.innerWidth < 480) { // Mobile
+        title.style.fontSize = '16px';
+        Object.assign(container.style, {
+            position: 'fixed',
+            left: `${VIEWPORT_PADDING}px`,
+            top: `${VIEWPORT_PADDING + 40}px`, // Space for title
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px'
+        });
+    } else if (window.innerWidth < 768) { // Tablet
+        title.style.fontSize = '18px';
+        Object.assign(container.style, {
+            position: 'fixed',
+            left: `${VIEWPORT_PADDING}px`,
+            top: `${VIEWPORT_PADDING + 45}px`,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '15px'
+        });
+    } else { // Desktop
+        title.style.fontSize = '20px';
+        Object.assign(container.style, {
+            position: 'fixed',
+            left: `${VIEWPORT_PADDING}px`,
+            top: `${VIEWPORT_PADDING}px`,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '20px'
+        });
+    }
+
     // Move buttons to container if they're not already there
     if (!randomizeButton.parentElement === container) {
         container.appendChild(randomizeButton);

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>3D Perspective</title>
+    <title>Floating Dots</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
         body {
@@ -23,11 +23,33 @@
             z-index: 1000; /* Ensure buttons are above canvas */
         }
         
+        .copyright {
+            position: fixed;
+            right: 30px;
+            bottom: 30px;
+            color: white;
+            font-family: monospace;
+            font-size: 14px;
+            z-index: 1000;
+        }
+
+        .copyright a {
+            color: white;
+            text-decoration: none;
+        }
+
+        .copyright a:hover {
+            text-decoration: underline;
+        }
+        
         /* Media Queries for Responsive Design */
         @media (max-width: 768px) { /* Tablets and smaller */
             button {
                 font-size: 12px !important;
                 padding: 8px 16px !important;
+            }
+            .copyright {
+                font-size: 12px;
             }
         }
         
@@ -35,6 +57,9 @@
             button {
                 font-size: 11px !important;
                 padding: 6px 12px !important;
+            }
+            .copyright {
+                font-size: 11px;
             }
             
             /* Stack buttons vertically on mobile */
@@ -49,6 +74,7 @@
 <body>
     <canvas id="canvas"></canvas>
     <div class="controls-container"></div>
+    <div class="copyright">© 2025 Red Elephant - <a href="https://www.red-elephant.se/" target="_blank">red-elephant.se</a></div>
     <!-- Add this to test basic audio -->
     <audio id="test-audio" style="display: none;">
         <source src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA" type="audio/wav">
