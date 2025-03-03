@@ -48,60 +48,49 @@ let lineEffect = {
     speedMultiplier: 1
 };
 
-// Add this audio context and setup at the beginning of your code
-let audioCtx;
-let noiseNode;
-let gainNode;
-let filterNode;
-let soundEnabled = false;
+// Audio setup
+let audioCtx, gainNode, filterNode, soundEnabled = false;
 
 function initAudio() {
     try {
-        // Create noise with shorter buffer for more immediate feedback
-        const bufferSize = audioCtx.sampleRate * 0.5; // 0.5 second buffer
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // Create noise buffer
+        const bufferSize = audioCtx.sampleRate * 2;  // 2 seconds buffer
         const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
         const output = noiseBuffer.getChannelData(0);
         
-        // Fill buffer with more pronounced noise
+        // Generate pink-ish noise
         for (let i = 0; i < bufferSize; i++) {
-            // Create pink-ish noise by adding weighted octaves
-            let noise = 0;
-            for (let octave = 0; octave < 3; octave++) {
-                noise += (Math.random() * 2 - 1) * (1 / (octave + 1));
-            }
-            output[i] = noise * 0.5; // Scale down the amplitude
+            output[i] = (Math.random() * 2 - 1) * 0.5;
         }
 
-        // Create and configure nodes
-        noiseNode = audioCtx.createBufferSource();
-        noiseNode.buffer = noiseBuffer;
-        noiseNode.loop = true;
+        // Create noise source
+        const noiseSource = audioCtx.createBufferSource();
+        noiseSource.buffer = noiseBuffer;
+        noiseSource.loop = true;
 
-        // More relaxing filter settings
+        // Create filter
         filterNode = audioCtx.createBiquadFilter();
-        filterNode.type = "bandpass";
-        filterNode.frequency.setValueAtTime(300, audioCtx.currentTime); // Lower base frequency
-        filterNode.Q.setValueAtTime(2, audioCtx.currentTime); // Wider bandwidth for softer sound
+        filterNode.type = 'lowpass';
+        filterNode.frequency.value = 400;
+        filterNode.Q.value = 1.5;
 
-        // Add a second filter for more shaping
-        const filter2 = audioCtx.createBiquadFilter();
-        filter2.type = "lowpass";
-        filter2.frequency.setValueAtTime(2000, audioCtx.currentTime);
-
+        // Create gain node
         gainNode = audioCtx.createGain();
-        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gainNode.gain.value = 0;
 
-        // Connect nodes with second filter
-        noiseNode.connect(filterNode);
-        filterNode.connect(filter2);
-        filter2.connect(gainNode);
+        // Connect nodes
+        noiseSource.connect(filterNode);
+        filterNode.connect(gainNode);
         gainNode.connect(audioCtx.destination);
 
         // Start noise
-        noiseNode.start();
-        console.log('Audio nodes initialized with test volume');
+        noiseSource.start();
+        
+        console.log('Audio initialized successfully');
     } catch (error) {
-        console.error('Error initializing audio:', error);
+        console.error('Audio initialization error:', error);
     }
 }
 
@@ -136,23 +125,86 @@ function updatePositions() {
             point.y = startPoint.y + (point.targetY - startPoint.y) * spreadProgress;
             point.z = startPoint.z + (point.targetZ - startPoint.z) * spreadProgress;
         } else {
-            // Organic movement phase
-            const time = Date.now() * 0.0005; // Slowed down time factor (was 0.001)
-            
-            // Smoother sine wave movement
-            point.x += Math.sin(time + point.targetX) * 1.5;  // Reduced amplitude (was 2)
-            point.y += Math.cos(time + point.targetY) * 1.5;
-            point.z += Math.sin(time * 0.3 + point.targetZ) * 1.5;  // Slower Z movement
-            
-            // Reduced random movement
-            point.x += (Math.random() - 0.5) * 0.8;  // Reduced from 3 to 0.8
-            point.y += (Math.random() - 0.5) * 0.8;
-            point.z += (Math.random() - 0.5) * 0.8;
-            
-            // Boundary checks
-            point.x = Math.max(-400, Math.min(400, point.x));
-            point.y = Math.max(-400, Math.min(400, point.y));
-            point.z = Math.max(0, Math.min(400, point.z));
+            // Initialize movement properties if they don't exist
+            if (!point.movement) {
+                point.movement = {
+                    // Random 3D direction vector
+                    dirX: Math.random() * 2 - 1,
+                    dirY: Math.random() * 2 - 1,
+                    dirZ: Math.random() * 2 - 1,
+                    // Random speed
+                    speed: 0.5 + Math.random() * 1.5,
+                    // Time until next direction change
+                    nextChange: Date.now() + 2000 + Math.random() * 5000
+                };
+                // Normalize direction vector
+                const length = Math.sqrt(
+                    point.movement.dirX * point.movement.dirX + 
+                    point.movement.dirY * point.movement.dirY + 
+                    point.movement.dirZ * point.movement.dirZ
+                );
+                point.movement.dirX /= length;
+                point.movement.dirY /= length;
+                point.movement.dirZ /= length;
+            }
+
+            // Check if it's time to change direction
+            if (Date.now() > point.movement.nextChange) {
+                // Gradually transition to new direction
+                const newDirX = Math.random() * 2 - 1;
+                const newDirY = Math.random() * 2 - 1;
+                const newDirZ = Math.random() * 2 - 1;
+                
+                // Normalize new direction
+                const length = Math.sqrt(newDirX * newDirX + newDirY * newDirY + newDirZ * newDirZ);
+                
+                // Smooth transition to new direction
+                point.movement.dirX = 0.95 * point.movement.dirX + 0.05 * (newDirX / length);
+                point.movement.dirY = 0.95 * point.movement.dirY + 0.05 * (newDirY / length);
+                point.movement.dirZ = 0.95 * point.movement.dirZ + 0.05 * (newDirZ / length);
+                
+                // Random new speed
+                point.movement.speed = 0.5 + Math.random() * 1.5;
+                
+                // Set next change time
+                point.movement.nextChange = Date.now() + 2000 + Math.random() * 5000;
+            }
+
+            // Apply movement
+            point.x += point.movement.dirX * point.movement.speed;
+            point.y += point.movement.dirY * point.movement.speed;
+            point.z += point.movement.dirZ * point.movement.speed;
+
+            // Smooth boundary handling with direction reversal
+            if (Math.abs(point.x) > 400) {
+                point.x = Math.sign(point.x) * 400;
+                point.movement.dirX *= -1;
+                // Add slight random variation when bouncing
+                point.movement.dirY += (Math.random() - 0.5) * 0.5;
+                point.movement.dirZ += (Math.random() - 0.5) * 0.5;
+            }
+            if (Math.abs(point.y) > 400) {
+                point.y = Math.sign(point.y) * 400;
+                point.movement.dirY *= -1;
+                point.movement.dirX += (Math.random() - 0.5) * 0.5;
+                point.movement.dirZ += (Math.random() - 0.5) * 0.5;
+            }
+            if (point.z < 0 || point.z > 400) {
+                point.z = point.z < 0 ? 0 : 400;
+                point.movement.dirZ *= -1;
+                point.movement.dirX += (Math.random() - 0.5) * 0.5;
+                point.movement.dirY += (Math.random() - 0.5) * 0.5;
+            }
+
+            // Re-normalize direction vector after changes
+            const length = Math.sqrt(
+                point.movement.dirX * point.movement.dirX + 
+                point.movement.dirY * point.movement.dirY + 
+                point.movement.dirZ * point.movement.dirZ
+            );
+            point.movement.dirX /= length;
+            point.movement.dirY /= length;
+            point.movement.dirZ /= length;
         }
     });
 }
@@ -238,102 +290,108 @@ function draw() {
     });
 }
 
-// Add this function to calculate overall "energy"
-function calculateSystemEnergy() {
-    let totalEnergy = 0;
-    let maxDistance = 0;
-    let totalIntensity = 0;
-    let lineCount = 0;
+function calculateSculptureState() {
+    let minX = Infinity, maxX = -Infinity;
+    let minY = Infinity, maxY = -Infinity;
+    let minZ = Infinity, maxZ = -Infinity;
+    let totalMovement = 0;
+    let avgX = 0, avgY = 0, avgZ = 0;
     
-    // Calculate line intensities along with other metrics
-    for (let i = 0; i < points.length; i++) {
-        for (let j = i + 1; j < points.length; j++) {
-            const p1 = points[i].project();
-            const p2 = points[j].project();
-            
-            // Get line intensity based on current effect
-            let intensity = lineEffect.baseIntensity;
-            const distance = Math.hypot(p2.x - p1.x, p2.y - p1.y);
-            
-            if (lineEffect.type === 'distance') {
-                const normalizedDist = distance / 500;
-                intensity *= lineEffect.distanceMode === 'normal' ? 
-                    normalizedDist : (1 - normalizedDist * 0.5);
-            }
-            
-            totalIntensity += intensity;
-            lineCount++;
-            
-            maxDistance = Math.max(maxDistance, distance);
-            const speed = Math.abs(points[i].x - (points[i].prevX || points[i].x)) +
-                         Math.abs(points[i].y - (points[i].prevY || points[i].y));
-            totalEnergy += speed;
+    points.forEach(point => {
+        minX = Math.min(minX, point.x);
+        maxX = Math.max(maxX, point.x);
+        minY = Math.min(minY, point.y);
+        maxY = Math.max(maxY, point.y);
+        minZ = Math.min(minZ, point.z);
+        maxZ = Math.max(maxZ, point.z);
+        
+        avgX += point.x;
+        avgY += point.y;
+        avgZ += point.z;
+    });
+    
+    avgX /= points.length;
+    avgY /= points.length;
+    avgZ /= points.length;
+    
+    let totalDistanceFromCenter = 0;
+    points.forEach(point => {
+        const distFromCenter = Math.sqrt(
+            Math.pow(point.x - avgX, 2) + 
+            Math.pow(point.y - avgY, 2) + 
+            Math.pow(point.z - avgZ, 2)
+        );
+        totalDistanceFromCenter += distFromCenter;
+        
+        if (point.lastPos) {
+            const movement = Math.sqrt(
+                Math.pow(point.x - point.lastPos.x, 2) +
+                Math.pow(point.y - point.lastPos.y, 2) +
+                Math.pow(point.z - point.lastPos.z, 2)
+            );
+            totalMovement += movement;
         }
-    }
-
+        
+        point.lastPos = { x: point.x, y: point.y, z: point.z };
+    });
+    
+    const avgDistanceFromCenter = totalDistanceFromCenter / points.length;
+    const avgMovement = totalMovement / points.length;
+    
     return {
-        energy: totalEnergy / points.length,
-        maxDistance: maxDistance,
-        avgIntensity: totalIntensity / (lineCount || 1)
+        size: avgDistanceFromCenter,
+        maxSize: 400,
+        movement: avgMovement,
+        spread: avgDistanceFromCenter / 400,
+        boundingBox: {
+            width: maxX - minX,
+            height: maxY - minY,
+            depth: maxZ - minZ
+        }
     };
 }
 
-// Modify your animation loop to include sound updates
 function updateSound() {
     if (!audioCtx || !soundEnabled) return;
 
-    const { energy, maxDistance, avgIntensity } = calculateSystemEnergy();
-    
-    // Amplify the intensity factor for more dramatic effect
-    const intensityFactor = Math.pow(avgIntensity / lineEffect.baseIntensity, 2); // Square for more contrast
-    
-    // Base volume with more dramatic response to intensity
-    const baseVolume = 0.02;
-    const volume = Math.min(baseVolume + (energy * 0.2 + intensityFactor * 0.2), 0.4);
-    gainNode.gain.setTargetAtTime(volume, audioCtx.currentTime, 0.05);
-
-    // Frequency affected by distance and line effect type
-    const baseFreq = 100;
-    const maxFreq = 800;
-    let freqMod = 1;
-    
-    // More dramatic frequency modulation based on line effect type
-    switch(lineEffect.type) {
-        case 'wave':
-            freqMod = 1 + Math.sin(Date.now() * 0.001 * lineEffect.speedMultiplier) * 0.5; // Increased range
-            break;
-        case 'random':
-            freqMod = 0.5 + Math.random() * 1.0; // More random variation
-            break;
-        case 'distance':
-            if (lineEffect.distanceMode === 'normal') {
-                freqMod = 1 + intensityFactor * 0.5; // Intensity affects frequency more
-            } else {
-                freqMod = 1 / (1 + intensityFactor * 0.3);
-            }
-            break;
-    }
-    
-    const frequency = (baseFreq + (maxDistance * (maxFreq - baseFreq) / 1000)) * freqMod;
-    filterNode.frequency.setTargetAtTime(frequency, audioCtx.currentTime, 0.05);
-    
-    // More dramatic Q value modulation based on intensity
-    const qBase = 1.5;
-    const qRange = intensityFactor * 4; // Increased range
-    const qValue = qBase + Math.sin(Date.now() * 0.002 * lineEffect.speedMultiplier) * qRange;
-    filterNode.Q.setTargetAtTime(qValue, audioCtx.currentTime, 0.1);
-    
-    // Enhanced crackle effect for high intensity
-    if (intensityFactor > 1.0) { // Trigger earlier
-        const crackleIntensity = Math.pow(intensityFactor - 1.0, 2) * 0.2; // More dramatic crackling
-        const time = audioCtx.currentTime;
+    try {
+        const state = calculateSculptureState();
         
-        // Multiple crackle pulses for more electric feel
-        for (let i = 0; i < 3; i++) {
-            const pulseTime = time + i * 0.02;
-            gainNode.gain.setValueAtTime(volume + crackleIntensity, pulseTime);
-            gainNode.gain.setTargetAtTime(volume, pulseTime + 0.01, 0.01);
-        }
+        const minFreq = 80;
+        const maxFreq = 800;
+        const sizeInfluence = Math.pow(1 - (state.size / state.maxSize), 1.5);
+        let targetFreq = minFreq + (maxFreq - minFreq) * sizeInfluence;
+        
+        const movementInfluence = state.movement * 200;
+        targetFreq += movementInfluence;
+        
+        targetFreq = Math.min(maxFreq, Math.max(minFreq, targetFreq));
+        
+        filterNode.frequency.exponentialRampToValueAtTime(
+            targetFreq,
+            audioCtx.currentTime + 0.05
+        );
+        
+        const qMin = 0.5;
+        const qMax = 4;
+        const qValue = qMin + (qMax - qMin) * state.spread;
+        filterNode.Q.linearRampToValueAtTime(
+            qValue,
+            audioCtx.currentTime + 0.05
+        );
+        
+        const baseVolume = 0.05;
+        const movementVolume = state.movement * 0.2;
+        const spreadVolume = state.spread * 0.1;
+        const targetVolume = Math.min(0.3, baseVolume + movementVolume + spreadVolume);
+        
+        gainNode.gain.linearRampToValueAtTime(
+            targetVolume,
+            audioCtx.currentTime + 0.05
+        );
+        
+    } catch (error) {
+        console.error('Sound update error:', error);
     }
 }
 
@@ -384,10 +442,22 @@ function randomizeLineEffect() {
     lineEffect.speedMultiplier = Math.random() * 2 + 0.5;
 }
 
-// Define viewport padding at the top of the file
+// Create and style buttons
+const buttonStyle = {
+    position: 'fixed',
+    padding: '12px 20px',
+    background: 'black',
+    color: 'white',
+    border: '1px solid white',
+    cursor: 'pointer',
+    fontFamily: 'monospace',
+    fontSize: '14px',
+    transition: 'all 0.3s ease'
+};
+
 const VIEWPORT_PADDING = 30;
 
-// Add title after canvas setup
+// Add title
 const title = document.createElement('h1');
 title.textContent = 'Floating Dots';
 Object.assign(title.style, {
@@ -403,37 +473,54 @@ Object.assign(title.style, {
 });
 document.body.appendChild(title);
 
-// Button styling (keep your existing style)
-const buttonStyle = {
-    position: 'fixed',
-    padding: '12px 20px',
-    background: 'black',
-    color: 'white',
-    border: '1px solid white',
-    cursor: 'pointer',
-    fontFamily: 'monospace',
-    fontSize: '14px',
-    transition: 'all 0.3s ease'
-};
-
 // Create and position randomize button
 const randomizeButton = document.createElement('button');
 randomizeButton.textContent = 'Lines: random';
 Object.assign(randomizeButton.style, buttonStyle, {
     left: `${VIEWPORT_PADDING}px`,
-    top: `${VIEWPORT_PADDING + 50}px`  // Position below title
+    top: `${VIEWPORT_PADDING + 50}px`
 });
 randomizeButton.addEventListener('mouseover', () => randomizeButton.style.background = '#333');
 randomizeButton.addEventListener('mouseout', () => randomizeButton.style.background = 'black');
 randomizeButton.addEventListener('click', randomizeLineEffect);
 document.body.appendChild(randomizeButton);
 
+// Create and position sound button
+const soundButton = document.createElement('button');
+soundButton.textContent = 'Sound: OFF';
+Object.assign(soundButton.style, buttonStyle, {
+    left: `${VIEWPORT_PADDING}px`,
+    top: `${VIEWPORT_PADDING + 110}px`
+});
+soundButton.addEventListener('mouseover', () => soundButton.style.background = '#333');
+soundButton.addEventListener('mouseout', () => soundButton.style.background = 'black');
+soundButton.addEventListener('click', async () => {
+    try {
+        if (!audioCtx) {
+            await initAudio();
+            soundEnabled = true;
+            soundButton.textContent = 'Sound: ON';
+        } else {
+            soundEnabled = !soundEnabled;
+            gainNode.gain.setTargetAtTime(
+                soundEnabled ? 0.1 : 0, 
+                audioCtx.currentTime, 
+                0.1
+            );
+            soundButton.textContent = `Sound: ${soundEnabled ? 'ON' : 'OFF'}`;
+        }
+    } catch (error) {
+        console.error('Sound toggle error:', error);
+    }
+});
+document.body.appendChild(soundButton);
+
 // Create and position restart button
 const restartButton = document.createElement('button');
 restartButton.textContent = 'New Sculpture';
 Object.assign(restartButton.style, buttonStyle, {
     left: `${VIEWPORT_PADDING}px`,
-    top: `${VIEWPORT_PADDING + 110}px`  // Position below randomize button
+    top: `${VIEWPORT_PADDING + 170}px`
 });
 restartButton.addEventListener('mouseover', () => restartButton.style.background = '#333');
 restartButton.addEventListener('mouseout', () => restartButton.style.background = 'black');
@@ -450,44 +537,6 @@ restartButton.addEventListener('click', () => {
     initializePoints();
 });
 document.body.appendChild(restartButton);
-
-// Create and position sound button
-const soundButton = document.createElement('button');
-soundButton.textContent = 'Sound: OFF';
-Object.assign(soundButton.style, buttonStyle, {
-    left: `${VIEWPORT_PADDING}px`,
-    top: `${VIEWPORT_PADDING + 170}px`  // Position below restart button
-});
-soundButton.addEventListener('mouseover', () => soundButton.style.background = '#333');
-soundButton.addEventListener('mouseout', () => soundButton.style.background = 'black');
-soundButton.addEventListener('click', async () => {
-    try {
-        if (!audioCtx) {
-            // Create audio context on first click
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            await audioCtx.resume();
-            initAudio();
-            soundEnabled = true;
-            soundButton.textContent = 'Sound: ON';
-            console.log('Audio initialized');
-        } else {
-            if (soundEnabled) {
-                gainNode.gain.value = 0;
-                soundEnabled = false;
-                soundButton.textContent = 'Sound: OFF';
-                console.log('Sound disabled');
-            } else {
-                await audioCtx.resume();
-                soundEnabled = true;
-                soundButton.textContent = 'Sound: ON';
-                console.log('Sound enabled');
-            }
-        }
-    } catch (error) {
-        console.error('Audio error:', error);
-    }
-});
-document.body.appendChild(soundButton);
 
 // Create info box
 const infoBox = document.createElement('div');
@@ -506,152 +555,41 @@ Object.assign(infoBox.style, {
 });
 document.body.appendChild(infoBox);
 
-// Call randomizeLineEffect once at start to set initial info
+// Add copyright with responsive positioning
+const copyright = document.createElement('div');
+Object.assign(copyright.style, {
+    position: 'fixed',
+    right: `${VIEWPORT_PADDING}px`,  // Default to right side for desktop
+    bottom: `${VIEWPORT_PADDING}px`,
+    color: 'white',
+    fontFamily: 'monospace',
+    fontSize: '12px',
+    zIndex: '1000'
+});
+copyright.innerHTML = '2025 Red Elephant - <a href="https://www.red-elephant.se/" target="_blank" style="color: white; text-decoration: none;">red-elephant.se</a>';
+document.body.appendChild(copyright);
+
+// Add responsive handling
+window.addEventListener('resize', () => {
+    if (window.innerWidth < 768) {  // Mobile breakpoint
+        copyright.style.right = 'auto';
+        copyright.style.left = `${VIEWPORT_PADDING}px`;
+        copyright.style.bottom = `${VIEWPORT_PADDING}px`;
+        infoBox.style.bottom = `${VIEWPORT_PADDING + 40}px`;  // Move up to make room for copyright
+    } else {
+        copyright.style.right = `${VIEWPORT_PADDING}px`;
+        copyright.style.left = 'auto';
+        copyright.style.bottom = `${VIEWPORT_PADDING}px`;
+        infoBox.style.bottom = `${VIEWPORT_PADDING}px`;  // Reset to original position
+    }
+});
+
+// Trigger initial responsive layout
+window.dispatchEvent(new Event('resize'));
+
+// Initialize the first line effect
 randomizeLineEffect();
 
 // Start animation
 initializePoints();
 animate();
-
-// Add responsive handling
-function handleResize() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    
-    // Adjust viewport padding based on screen size
-    VIEWPORT_PADDING = window.innerWidth < 480 ? 15 : 
-                      window.innerWidth < 768 ? 20 : 30;
-                      
-    // Adjust point size based on screen size
-    POINT_SIZE = window.innerWidth < 480 ? 2 : 
-                 window.innerWidth < 768 ? 2.5 : 3;
-                 
-    // Adjust movement boundaries based on screen size
-    const boundaryLimit = Math.min(window.innerWidth, window.innerHeight) * 0.4;
-    BOUNDARY_LIMIT = {
-        x: boundaryLimit,
-        y: boundaryLimit,
-        z: boundaryLimit
-    };
-    
-    updateUIPositions();
-    
-    if (window.innerWidth < 480) { // Mobile
-        title.style.fontSize = '16px';
-    } else if (window.innerWidth < 768) { // Tablet
-        title.style.fontSize = '18px';
-    } else { // Desktop
-        title.style.fontSize = '20px';
-    }
-}
-
-// Function to update UI element positions
-function updateUIPositions() {
-    let container = document.querySelector('.controls-container');
-    if (!container) {
-        container = document.createElement('div');
-        container.className = 'controls-container';
-        document.body.appendChild(container);
-    }
-
-    if (window.innerWidth < 480) { // Mobile
-        title.style.fontSize = '16px';
-        Object.assign(container.style, {
-            position: 'fixed',
-            left: `${VIEWPORT_PADDING}px`,
-            top: `${VIEWPORT_PADDING + 40}px`, // Space for title
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '10px'
-        });
-    } else if (window.innerWidth < 768) { // Tablet
-        title.style.fontSize = '18px';
-        Object.assign(container.style, {
-            position: 'fixed',
-            left: `${VIEWPORT_PADDING}px`,
-            top: `${VIEWPORT_PADDING + 45}px`,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '15px'
-        });
-    } else { // Desktop
-        title.style.fontSize = '20px';
-        Object.assign(container.style, {
-            position: 'fixed',
-            left: `${VIEWPORT_PADDING}px`,
-            top: `${VIEWPORT_PADDING}px`,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '20px'
-        });
-    }
-
-    // Move buttons to container if they're not already there
-    if (!randomizeButton.parentElement === container) {
-        container.appendChild(randomizeButton);
-        container.appendChild(soundButton);
-        container.appendChild(restartButton);
-    }
-
-    // Update button and info box positions
-    if (window.innerWidth < 480) { // Mobile
-        Object.assign(container.style, {
-            position: 'fixed',
-            left: `${VIEWPORT_PADDING}px`,
-            top: `${VIEWPORT_PADDING}px`,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '10px'
-        });
-
-        Object.assign(infoBox.style, {
-            left: `${VIEWPORT_PADDING}px`,
-            bottom: `${VIEWPORT_PADDING}px`,
-            maxWidth: `calc(100vw - ${VIEWPORT_PADDING * 2}px)`,
-            fontSize: '11px',
-            padding: '8px 12px'
-        });
-    } else if (window.innerWidth < 768) { // Tablet
-        Object.assign(container.style, {
-            position: 'fixed',
-            left: `${VIEWPORT_PADDING}px`,
-            top: `${VIEWPORT_PADDING}px`,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '15px'
-        });
-
-        Object.assign(infoBox.style, {
-            left: `${VIEWPORT_PADDING}px`,
-            bottom: `${VIEWPORT_PADDING}px`,
-            maxWidth: '250px',
-            fontSize: '12px',
-            padding: '10px 16px'
-        });
-    } else { // Desktop
-        // Keep original desktop styling
-        Object.assign(container.style, {
-            position: 'fixed',
-            left: `${VIEWPORT_PADDING}px`,
-            top: `${VIEWPORT_PADDING}px`,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '20px'
-        });
-
-        Object.assign(infoBox.style, {
-            left: `${VIEWPORT_PADDING}px`,
-            bottom: `${VIEWPORT_PADDING}px`,
-            maxWidth: '300px',
-            fontSize: '14px',
-            padding: '12px 20px'
-        });
-    }
-}
-
-// Add event listeners
-window.addEventListener('resize', handleResize);
-window.addEventListener('orientationchange', handleResize);
-
-// Initial setup
-handleResize();

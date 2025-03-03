@@ -20,65 +20,12 @@
             height: 100%;
         }
         button {
-            z-index: 1000; /* Ensure buttons are above canvas */
-        }
-        
-        .copyright {
-            position: fixed;
-            right: 30px;
-            bottom: 30px;
-            color: white;
-            font-family: monospace;
-            font-size: 14px;
             z-index: 1000;
-        }
-
-        .copyright a {
-            color: white;
-            text-decoration: none;
-        }
-
-        .copyright a:hover {
-            text-decoration: underline;
-        }
-        
-        /* Media Queries for Responsive Design */
-        @media (max-width: 768px) { /* Tablets and smaller */
-            button {
-                font-size: 12px !important;
-                padding: 8px 16px !important;
-            }
-            .copyright {
-                font-size: 12px;
-            }
-        }
-        
-        @media (max-width: 480px) { /* Mobile phones */
-            button {
-                font-size: 11px !important;
-                padding: 6px 12px !important;
-            }
-            .copyright {
-                font-size: 11px;
-            }
-            
-            /* Stack buttons vertically on mobile */
-            .controls-container {
-                display: flex;
-                flex-direction: column;
-                gap: 10px;
-            }
         }
     </style>
 </head>
 <body>
     <canvas id="canvas"></canvas>
-    <div class="controls-container"></div>
-    <div class="copyright">© 2025 Red Elephant - <a href="https://www.red-elephant.se/" target="_blank">red-elephant.se</a></div>
-    <!-- Add this to test basic audio -->
-    <audio id="test-audio" style="display: none;">
-        <source src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA" type="audio/wav">
-    </audio>
     <script src="app.js"></script>
 </body>
 </html> 
