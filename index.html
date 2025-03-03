@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>3D Perspective</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #000;
+            width: 100vw;
+            height: 100vh;
+        }
+        canvas {
+            display: block;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        button {
+            z-index: 1000; /* Ensure buttons are above canvas */
+        }
+        
+        /* Media Queries for Responsive Design */
+        @media (max-width: 768px) { /* Tablets and smaller */
+            button {
+                font-size: 12px !important;
+                padding: 8px 16px !important;
+            }
+        }
+        
+        @media (max-width: 480px) { /* Mobile phones */
+            button {
+                font-size: 11px !important;
+                padding: 6px 12px !important;
+            }
+            
+            /* Stack buttons vertically on mobile */
+            .controls-container {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <div class="controls-container"></div>
+    <!-- Add this to test basic audio -->
+    <audio id="test-audio" style="display: none;">
+        <source src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA" type="audio/wav">
+    </audio>
+    <script src="app.js"></script>
+</body>
+</html> 
