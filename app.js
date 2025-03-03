@@ -455,7 +455,38 @@ const buttonStyle = {
     transition: 'all 0.3s ease'
 };
 
-const VIEWPORT_PADDING = 30;
+// Update padding definition to be responsive
+let VIEWPORT_PADDING = window.innerWidth < 480 ? 15 : 
+                      window.innerWidth < 768 ? 20 : 30;
+
+// Add resize handler for padding
+window.addEventListener('resize', () => {
+    VIEWPORT_PADDING = window.innerWidth < 480 ? 15 : 
+                      window.innerWidth < 768 ? 20 : 30;
+    
+    // Update positions of all elements
+    title.style.left = `${VIEWPORT_PADDING}px`;
+    randomizeButton.style.left = `${VIEWPORT_PADDING}px`;
+    soundButton.style.left = `${VIEWPORT_PADDING}px`;
+    restartButton.style.left = `${VIEWPORT_PADDING}px`;
+    infoBox.style.left = `${VIEWPORT_PADDING}px`;
+    
+    // Update copyright position based on screen size
+    if (window.innerWidth < 768) {
+        copyright.style.right = 'auto';
+        copyright.style.left = `${VIEWPORT_PADDING}px`;
+        copyright.style.bottom = `${VIEWPORT_PADDING}px`;
+        infoBox.style.bottom = `${VIEWPORT_PADDING + 40}px`;
+    } else {
+        copyright.style.right = `${VIEWPORT_PADDING}px`;
+        copyright.style.left = 'auto';
+        copyright.style.bottom = `${VIEWPORT_PADDING}px`;
+        infoBox.style.bottom = `${VIEWPORT_PADDING}px`;
+    }
+});
+
+// Trigger initial layout
+window.dispatchEvent(new Event('resize'));
 
 // Add title
 const title = document.createElement('h1');
@@ -568,24 +599,6 @@ Object.assign(copyright.style, {
 });
 copyright.innerHTML = '2025 Red Elephant - <a href="https://www.red-elephant.se/" target="_blank" style="color: white; text-decoration: none;">red-elephant.se</a>';
 document.body.appendChild(copyright);
-
-// Add responsive handling
-window.addEventListener('resize', () => {
-    if (window.innerWidth < 768) {  // Mobile breakpoint
-        copyright.style.right = 'auto';
-        copyright.style.left = `${VIEWPORT_PADDING}px`;
-        copyright.style.bottom = `${VIEWPORT_PADDING}px`;
-        infoBox.style.bottom = `${VIEWPORT_PADDING + 40}px`;  // Move up to make room for copyright
-    } else {
-        copyright.style.right = `${VIEWPORT_PADDING}px`;
-        copyright.style.left = 'auto';
-        copyright.style.bottom = `${VIEWPORT_PADDING}px`;
-        infoBox.style.bottom = `${VIEWPORT_PADDING}px`;  // Reset to original position
-    }
-});
-
-// Trigger initial responsive layout
-window.dispatchEvent(new Event('resize'));
 
 // Initialize the first line effect
 randomizeLineEffect();
